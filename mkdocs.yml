@@ -1,0 +1,45 @@
+site_name: agent-company-core
+site_description: Durable, provider-neutral orchestration for multi-agent AI workflows
+site_url: https://nhaooo.github.io/agent-company-core/
+repo_url: https://github.com/Nhaooo/agent-company-core
+repo_name: Nhaooo/agent-company-core
+copyright: Copyright © agent-company-core contributors
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - tables
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Concepts:
+      - Missions: concepts/missions.md
+      - Decisions: concepts/decisions.md
+      - Approvals: concepts/approvals.md
+      - STOP and recovery: concepts/stop-and-recovery.md
+      - Tools: concepts/tools.md
+      - Memory: concepts/memory.md
+  - Providers:
+      - Matrix: providers.md
+      - Anthropic Claude: providers/anthropic.md
+      - OpenAI-compatible: providers/openai-compatible.md
+      - Google Gen AI: providers/google.md
+      - Ollama/local: providers/ollama.md
+  - Integrations:
+      - Overview: integrations.md
+      - FastAPI: integrations/fastapi.md
+      - Temporal: integrations/temporal.md
+      - PostgreSQL: integrations/postgres.md
+  - Examples: examples.md
+  - Security: security.md
+  - Development:
+      - Architecture: development/architecture.md
+      - Contributing: contributing.md

@@ -10,6 +10,7 @@ htmlcov/
 dist/
 dist2/
 build/
+/site/
 *.sqlite3
 *.db
 /runtime/

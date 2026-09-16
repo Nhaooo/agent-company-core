@@ -1,0 +1,19 @@
+name: Documentation improvement
+description: Report a confusing, missing, or incorrect explanation
+title: "[docs] "
+labels:
+  - documentation
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is unclear?
+      description: Include the page or example and the reader's intended outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Suggested improvement
+    validations:
+      required: true
