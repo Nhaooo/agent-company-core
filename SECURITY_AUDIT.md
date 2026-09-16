@@ -48,5 +48,7 @@ environment. Provider SDKs and integrations remain optional. No third-party
 source is copied; dependency notices and licenses remain the responsibility of
 their respective licensors as described in `THIRD_PARTY_NOTICES.md`.
 
-The v0.2.0 release is not complete until the release workflow passes its
-credential-free tests and the PyPI Trusted Publishing identity remains exact.
+The v0.2.0 release workflow passed its credential-free tests and the PyPI
+Trusted Publishing identity matched exactly. The published distributions were
+then installed once in a fresh environment from PyPI and the offline demo
+completed successfully.

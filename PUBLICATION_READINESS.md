@@ -1,8 +1,7 @@
 # Publication readiness
 
-This record describes the v0.2.0 release candidate on 2026-09-16. The
-existing v0.1.0 release remains public; the v0.2.0 GitHub release and PyPI
-publication are intentionally performed only after the gates below pass.
+This record describes the completed v0.2.0 publication on 2026-09-16. The
+release was created only after the gates below passed.
 
 | Area | Status | Evidence / follow-up |
 | --- | --- | --- |
@@ -19,7 +18,7 @@ publication are intentionally performed only after the gates below pass.
 | Provider neutrality | PASS | Anthropic and OpenAI-compatible SDKs are optional; core imports no provider SDK. |
 | Security model | PASS | Approval, STOP, redaction, and the disabled-by-default restricted runner threat model are documented accurately. |
 | GitHub readiness | PASS | Public repository, Apache-2.0 recognition, Dependabot, secret scanning, push protection, Scorecard, Pages, and green main CI are configured. |
-| PyPI Trusted Publishing | PASS | Dedicated `pypi` environment and OIDC release workflow are configured for owner `Nhaooo`, repository `agent-company-core`, workflow `release.yml`. The v0.2.0 release trigger remains pending. |
+| PyPI Trusted Publishing | PASS | Dedicated `pypi` environment and OIDC release workflow published v0.2.0 for owner `Nhaooo`, repository `agent-company-core`, workflow `release.yml`; no long-lived token was used. |
 | Name check | PASS | The exact GitHub and PyPI names are now occupied by this intended project; no unrelated conflict was found before publication. |
 
 ## Finalization controls
@@ -33,14 +32,16 @@ publication are intentionally performed only after the gates below pass.
   the GitHub Release, then publishes through PyPI Trusted Publishing using the
   `pypi` environment and job-scoped OIDC permission.
 
-## Published baseline and pending release
+## Published release
 
 - GitHub: https://github.com/Nhaooo/agent-company-core
 - Existing release: https://github.com/Nhaooo/agent-company-core/releases/tag/v0.1.0
+- Current release: https://github.com/Nhaooo/agent-company-core/releases/tag/v0.2.0
 - PyPI: https://pypi.org/project/agent-company-core/
-- Candidate package: `agent-company-core`, version `0.2.0`
-- Candidate publisher identity: GitHub owner `Nhaooo`, repository
+- Package: `agent-company-core`, version `0.2.0`
+- Publisher identity: GitHub owner `Nhaooo`, repository
   `agent-company-core`, workflow `release.yml`, environment `pypi`.
 
-The v0.2.0 release must not be created until the working tree is clean, main
-CI is green, and the release workflow identity still matches this record.
+The release workflow completed successfully with tagged tests, wheel/sdist
+validation, and PyPI publication. A fresh environment installed
+`agent-company-core==0.2.0` from PyPI and ran `agent-company demo` successfully.

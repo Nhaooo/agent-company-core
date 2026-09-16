@@ -17,6 +17,6 @@
   improvements on a feature branch and merge them through green CI.
 - [x] Open genuine contributor issues for the remaining roadmap work.
 - [x] Re-run the final tracked-file and complete-history Gitleaks scans.
-- [ ] Create the deliberate GitHub v0.2.0 release and verify the OIDC PyPI
+- [x] Create the deliberate GitHub v0.2.0 release and verify the OIDC PyPI
   publication.
-- [ ] Run one fresh public PyPI v0.2.0 install and offline CLI smoke test.
+- [x] Run one fresh public PyPI v0.2.0 install and offline CLI smoke test.
