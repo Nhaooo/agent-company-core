@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -79,8 +81,20 @@ class SQLiteStore:
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
+    @contextmanager
+    def _connection(self) -> Iterator[sqlite3.Connection]:
+        connection = self._connect()
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
     def _initialize(self) -> None:
-        with self._connect() as db:
+        with self._connection() as db:
             db.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS missions (
@@ -121,7 +135,7 @@ class SQLiteStore:
         )
 
     def create_mission(self, value: MissionCreate) -> Mission:
-        with self._connect() as db:
+        with self._connection() as db:
             if value.idempotency_key:
                 row = db.execute(
                     "SELECT * FROM missions WHERE idempotency_key = ?", (value.idempotency_key,)
@@ -155,14 +169,14 @@ class SQLiteStore:
             return mission
 
     def get_mission(self, mission_id: UUID) -> Mission:
-        with self._connect() as db:
+        with self._connection() as db:
             row = db.execute("SELECT * FROM missions WHERE id = ?", (str(mission_id),)).fetchone()
             if not row:
                 raise KeyError(f"unknown mission: {mission_id}")
             return self._mission(row)
 
     def list_missions(self) -> list[Mission]:
-        with self._connect() as db:
+        with self._connection() as db:
             return [
                 self._mission(row)
                 for row in db.execute("SELECT * FROM missions ORDER BY created_at DESC")
@@ -172,7 +186,7 @@ class SQLiteStore:
         self, mission_id: UUID, status: MissionStatus, *, payload: dict[str, object] | None = None
     ) -> Mission:
         now = _now()
-        with self._connect() as db:
+        with self._connection() as db:
             row = db.execute("SELECT * FROM missions WHERE id = ?", (str(mission_id),)).fetchone()
             if not row:
                 raise KeyError(f"unknown mission: {mission_id}")
@@ -189,7 +203,7 @@ class SQLiteStore:
 
     def assign_agents(self, mission_id: UUID, agent_ids: list[str]) -> Mission:
         now = _now()
-        with self._connect() as db:
+        with self._connection() as db:
             db.execute(
                 "UPDATE missions SET assigned_agents = ?, updated_at = ? WHERE id = ?",
                 (json.dumps(agent_ids), now, str(mission_id)),
@@ -202,7 +216,7 @@ class SQLiteStore:
 
     def checkpoint(self, mission_id: UUID, value: str) -> Mission:
         now = _now()
-        with self._connect() as db:
+        with self._connection() as db:
             db.execute(
                 "UPDATE missions SET checkpoint = ?, updated_at = ? WHERE id = ?",
                 (value, now, str(mission_id)),
@@ -239,7 +253,7 @@ class SQLiteStore:
         return event
 
     def events(self, mission_id: UUID) -> list[MissionEvent]:
-        with self._connect() as db:
+        with self._connection() as db:
             return [
                 MissionEvent(
                     id=UUID(row["id"]),
@@ -256,7 +270,7 @@ class SQLiteStore:
             ]
 
     def save_approval(self, request: Any) -> None:
-        with self._connect() as db:
+        with self._connection() as db:
             db.execute(
                 "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
@@ -277,14 +291,14 @@ class SQLiteStore:
             )
 
     def get_approval(self, approval_id: UUID) -> dict[str, Any]:
-        with self._connect() as db:
+        with self._connection() as db:
             row = db.execute("SELECT * FROM approvals WHERE id = ?", (str(approval_id),)).fetchone()
             if not row:
                 raise KeyError(f"unknown approval: {approval_id}")
             return dict(row)
 
     def list_approvals(self, mission_id: UUID | None = None) -> list[dict[str, Any]]:
-        with self._connect() as db:
+        with self._connection() as db:
             if mission_id is None:
                 rows = db.execute("SELECT * FROM approvals ORDER BY expires_at").fetchall()
             else:
@@ -303,7 +317,7 @@ class SQLiteStore:
         request_hash: str,
         arguments: dict[str, object] | None = None,
     ) -> None:
-        with self._connect() as db:
+        with self._connection() as db:
             db.execute(
                 "UPDATE approvals SET status = ?, resolved_by = ?, resolved_hash = ?, "
                 "resolved_arguments = ? WHERE id = ? AND status = 'pending'",

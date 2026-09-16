@@ -169,7 +169,7 @@ class MissionEngine:
             self.audit.record(
                 "mission.failed",
                 mission_id=str(mission.id),
-                payload={"error_type": type(exc).__name__, "error": str(exc)},
+                payload={"error_type": type(exc).__name__},
             )
             return MissionResult(
                 mission_id=mission.id,

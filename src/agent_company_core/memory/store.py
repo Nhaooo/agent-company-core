@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -32,7 +33,7 @@ class SQLiteMemoryStore(MemoryStore):
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS memories ("
                 "id TEXT PRIMARY KEY, scope TEXT NOT NULL, key TEXT, content TEXT NOT NULL, "
@@ -40,7 +41,7 @@ class SQLiteMemoryStore(MemoryStore):
             )
 
     def remember(self, item: MemoryItem) -> MemoryItem:
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute(
                 "INSERT OR REPLACE INTO memories VALUES (?, ?, ?, ?, ?, ?)",
                 (
@@ -65,7 +66,7 @@ class SQLiteMemoryStore(MemoryStore):
             args.append(scope)
         sql += " ORDER BY created_at DESC LIMIT ?"
         args.append(limit)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.row_factory = sqlite3.Row
             rows = db.execute(sql, args).fetchall()
         return [

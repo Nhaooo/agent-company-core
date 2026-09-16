@@ -1,3 +1,6 @@
 """Optional provider and infrastructure adapters."""
 
-__all__: list[str] = []
+from .anthropic import AnthropicModel
+from .openai_compatible import OpenAICompatibleModel
+
+__all__ = ["AnthropicModel", "OpenAICompatibleModel"]
