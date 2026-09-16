@@ -12,7 +12,7 @@ dist2/
 build/
 *.sqlite3
 *.db
-runtime/
+/runtime/
 .env
 .env.*
 !.env.example

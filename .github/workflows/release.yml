@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  test:
+    name: Test tagged release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the released source
+        uses: actions/checkout@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: latest
+      - name: Install test dependencies
+        run: uv sync --all-extras --dev
+      - name: Run tests
+        run: uv run pytest
+      - name: Run Ruff
+        run: uv run ruff check src tests scripts
+      - name: Run mypy
+        run: uv run mypy src
+      - name: Run fallback secret scan
+        run: uv run python scripts/secret_scan.py
+
+  build:
+    name: Build and validate distributions
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the released source
+        uses: actions/checkout@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: latest
+      - name: Build wheel and sdist
+        run: uv build
+      - name: Validate package metadata
+        run: uvx --from twine twine check dist/*
+      - name: Store distributions for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI with OIDC
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/agent-company-core
+    # This is intentionally the only job that can mint an OIDC token. The
+    # PyPI trusted publisher maps this workflow and environment to the package.
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Download validated distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
