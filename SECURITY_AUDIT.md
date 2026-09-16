@@ -13,11 +13,11 @@ Result for the tracked public tree at finalization time:
 - Private personas/internal branding: 0 intended occurrences.
 - External publication: not performed.
 
-The dependency-free fallback scanner was run against 73 tracked files and
+The dependency-free fallback scanner was run against 79 tracked files and
 reported zero secret-pattern findings. Gitleaks v8.30.1 was then installed from
 the official release (with a matching published SHA-256 checksum) and run
 against both the publication tree and the complete Git history. The final
-result was zero findings in both scans across all 5 commits. An initial tree
+result was zero findings in both scans across all 6 commits. An initial tree
 scan reported 200 `generic-api-key` alerts only in the ignored local virtualenv
 file `.venv/Lib/site-packages/license_expression/data/scancode-licensedb-index.json`;
 that generated environment was removed and the publication-tree scan was
