@@ -93,6 +93,34 @@ def create_app(data_dir: str | Path | None = None) -> Any:
         )
         return cast(dict[str, object], result.model_dump(mode="json"))
 
+    @app.post("/missions/{mission_id}/delegate")
+    async def delegate_mission(mission_id: UUID, payload: dict[str, object]) -> dict[str, object]:
+        raw = payload.get("capabilities", [])
+        capabilities = {str(item) for item in raw} if isinstance(raw, list) else set()
+        mission = engine.delegate_mission(mission_id, capabilities=capabilities)
+        return cast(dict[str, object], mission.model_dump(mode="json"))
+
+    @app.post("/missions/{mission_id}/pause")
+    async def pause_mission(mission_id: UUID) -> dict[str, object]:
+        return cast(dict[str, object], engine.pause_mission(mission_id).model_dump(mode="json"))
+
+    @app.post("/missions/{mission_id}/cancel")
+    async def cancel_mission(mission_id: UUID) -> dict[str, object]:
+        return cast(dict[str, object], engine.cancel_mission(mission_id).model_dump(mode="json"))
+
+    @app.get("/missions/{mission_id}/events")
+    async def mission_events(mission_id: UUID) -> list[dict[str, object]]:
+        return [
+            cast(dict[str, object], event.model_dump(mode="json"))
+            for event in engine.store.events(mission_id)
+        ]
+
+    @app.post("/tools/choose")
+    async def choose_tool(payload: dict[str, object]) -> dict[str, str]:
+        raw = payload.get("capabilities", [])
+        capabilities = {str(item) for item in raw} if isinstance(raw, list) else set()
+        return {"tool": engine.choose_tool(capabilities)}
+
     @app.post("/runtime/stop")
     async def stop(payload: dict[str, object] | None = None) -> dict[str, str]:
         engine.request_stop(str((payload or {}).get("reason", "requested")))

@@ -105,7 +105,11 @@ class MissionEngine:
                 selected_agent=(mission.assigned_agents[0] if mission.assigned_agents else None),
                 checkpoint=mission.checkpoint,
             )
-        selected_agent = self.agents.select(capabilities=capabilities or set())
+        selected_agent = (
+            self.agents.get(mission.assigned_agents[0])
+            if mission.assigned_agents
+            else self.agents.select(capabilities=capabilities or set())
+        )
         assessment = assessment or RoutingAssessment(
             complexity=0.3, ambiguity=0.1, risk=0.1, continuity=0.2
         )
@@ -356,8 +360,48 @@ class MissionEngine:
             checkpoint=mission.checkpoint,
         )
 
+    def delegate_mission(
+        self, mission_id: UUID, *, capabilities: set[str], limit: int = 3
+    ) -> Mission:
+        selected = self.agents.select_many(capabilities=capabilities, limit=limit)
+        if not selected:
+            raise LookupError("no eligible agent matches the declared capabilities")
+        mission = self.store.assign_agents(mission_id, [agent.id for agent in selected])
+        if mission.status is MissionStatus.RECEIVED:
+            mission = self.store.set_status(
+                mission_id,
+                MissionStatus.PLANNED,
+                payload={"delegated_to": [agent.id for agent in selected]},
+            )
+        self.audit.record(
+            "mission.delegated",
+            mission_id=str(mission_id),
+            payload={"agent_ids": [agent.id for agent in selected]},
+        )
+        return mission
+
+    def pause_mission(self, mission_id: UUID, reason: str = "operator request") -> Mission:
+        return self.store.set_status(mission_id, MissionStatus.PAUSED, payload={"reason": reason})
+
+    def resume_mission(self, mission_id: UUID) -> Mission:
+        self.stop.assert_running()
+        return self.store.set_status(mission_id, MissionStatus.QUEUED, payload={"resumed": True})
+
+    def cancel_mission(self, mission_id: UUID, reason: str = "operator request") -> Mission:
+        return self.store.set_status(
+            mission_id, MissionStatus.CANCELLED, payload={"reason": reason}
+        )
+
     def resolve_approval(self, approval_id: UUID, resolution: ApprovalResolution) -> None:
         row = self.store.get_approval(approval_id)
+        if row["status"] != "pending":
+            if (
+                row["status"] == "approved"
+                and resolution.approved
+                and row["resolved_hash"] == resolution.request_hash
+            ):
+                return
+            raise PermissionError("approval has already been resolved")
         request = ApprovalRequest(
             id=approval_id,
             action=row["action"],
@@ -405,6 +449,9 @@ class MissionEngine:
         output = await value if inspect.isawaitable(value) else value
         mission_id = UUID(row["mission_id"]) if row["mission_id"] else None
         if mission_id:
+            self.store.set_status(
+                mission_id, MissionStatus.RUNNING, payload={"approval_id": str(approval_id)}
+            )
             self.store.set_status(
                 mission_id,
                 MissionStatus.COMPLETED,

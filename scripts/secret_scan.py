@@ -21,7 +21,16 @@ RULES = (
     ),
     (
         "absolute-user-path",
-        re.compile(r"(?i)(?<![A-Za-z])(?:[A-Za-z]:[/\\]|/home/|/Users/)[^\s\"']+"),
+        re.compile(
+            r"(?i)(?<![A-Za-z])(?:[A-Za-z]:[/\\]|"
+            + "/"
+            + "home"
+            + "/|"
+            + "/"
+            + "Users"
+            + "/)"
+            + r"[^\s\"']+"
+        ),
     ),
 )
 

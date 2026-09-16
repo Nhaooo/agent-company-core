@@ -15,6 +15,53 @@ from uuid import UUID
 
 from agent_company_core.contracts import Mission, MissionCreate, MissionEvent, MissionStatus
 
+_ALLOWED_TRANSITIONS: dict[MissionStatus, frozenset[MissionStatus]] = {
+    MissionStatus.RECEIVED: frozenset(
+        {
+            MissionStatus.PLANNED,
+            MissionStatus.QUEUED,
+            MissionStatus.CANCELLED,
+            MissionStatus.STOPPED,
+            MissionStatus.FAILED,
+        }
+    ),
+    MissionStatus.PLANNED: frozenset(
+        {MissionStatus.QUEUED, MissionStatus.CANCELLED, MissionStatus.STOPPED, MissionStatus.FAILED}
+    ),
+    MissionStatus.QUEUED: frozenset(
+        {
+            MissionStatus.RUNNING,
+            MissionStatus.CANCELLED,
+            MissionStatus.STOPPED,
+            MissionStatus.FAILED,
+        }
+    ),
+    MissionStatus.RUNNING: frozenset(
+        {
+            MissionStatus.WAITING_APPROVAL,
+            MissionStatus.PAUSED,
+            MissionStatus.BLOCKED,
+            MissionStatus.COMPLETED,
+            MissionStatus.CANCELLED,
+            MissionStatus.STOPPED,
+            MissionStatus.FAILED,
+        }
+    ),
+    MissionStatus.WAITING_APPROVAL: frozenset(
+        {MissionStatus.QUEUED, MissionStatus.CANCELLED, MissionStatus.STOPPED, MissionStatus.FAILED}
+    ),
+    MissionStatus.PAUSED: frozenset(
+        {MissionStatus.QUEUED, MissionStatus.CANCELLED, MissionStatus.STOPPED, MissionStatus.FAILED}
+    ),
+    MissionStatus.BLOCKED: frozenset(
+        {MissionStatus.QUEUED, MissionStatus.CANCELLED, MissionStatus.STOPPED, MissionStatus.FAILED}
+    ),
+    MissionStatus.COMPLETED: frozenset(),
+    MissionStatus.FAILED: frozenset({MissionStatus.QUEUED}),
+    MissionStatus.CANCELLED: frozenset(),
+    MissionStatus.STOPPED: frozenset({MissionStatus.QUEUED}),
+}
+
 
 def _now() -> str:
     return datetime.now(UTC).isoformat()
@@ -126,14 +173,18 @@ class SQLiteStore:
     ) -> Mission:
         now = _now()
         with self._connect() as db:
+            row = db.execute("SELECT * FROM missions WHERE id = ?", (str(mission_id),)).fetchone()
+            if not row:
+                raise KeyError(f"unknown mission: {mission_id}")
+            current = MissionStatus(row["status"])
+            if current != status and status not in _ALLOWED_TRANSITIONS[current]:
+                raise ValueError(f"invalid mission transition: {current.value} -> {status.value}")
             db.execute(
                 "UPDATE missions SET status = ?, updated_at = ? WHERE id = ?",
                 (status.value, now, str(mission_id)),
             )
             self._append_event(db, mission_id, f"mission.{status.value}", payload or {})
             row = db.execute("SELECT * FROM missions WHERE id = ?", (str(mission_id),)).fetchone()
-            if not row:
-                raise KeyError(f"unknown mission: {mission_id}")
             return self._mission(row)
 
     def assign_agents(self, mission_id: UUID, agent_ids: list[str]) -> Mission:

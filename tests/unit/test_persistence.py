@@ -11,8 +11,9 @@ def test_mission_idempotency_and_event_sequence(tmp_path: Path) -> None:
     first = store.create_mission(request)
     second = store.create_mission(request)
     assert first.id == second.id
+    store.set_status(first.id, MissionStatus.QUEUED)
     store.set_status(first.id, MissionStatus.RUNNING)
-    assert [event.sequence for event in store.events(first.id)] == [1, 2]
+    assert [event.sequence for event in store.events(first.id)] == [1, 2, 3]
 
 
 def test_memory_survives_new_store_instance(tmp_path: Path) -> None:
