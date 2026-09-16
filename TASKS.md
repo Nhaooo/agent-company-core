@@ -7,9 +7,9 @@
   workflow documentation.
 - [x] Run local quality, package, dependency, license, fallback-scan, and
   Gitleaks gates.
-- [ ] Recheck GitHub/PyPI name availability immediately before publication.
-- [ ] Create the public GitHub repository, configure metadata/security, and
+- [x] Recheck GitHub/PyPI name availability immediately before publication.
+- [x] Create the public GitHub repository, configure metadata/security, and
   wait for green main CI.
-- [ ] Configure and verify the PyPI pending Trusted Publisher.
-- [ ] Publish GitHub release v0.1.0 and verify the OIDC PyPI publication.
-- [ ] Run a fresh PyPI install smoke test and record factual public metrics.
+- [x] Configure and verify the PyPI pending Trusted Publisher.
+- [x] Publish GitHub release v0.1.0 and verify the OIDC PyPI publication.
+- [x] Run a fresh PyPI install smoke test and record factual public metrics.
