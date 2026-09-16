@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability reporting
+    url: https://github.com/Nhaooo/agent-company-core/security/advisories/new
+    about: Report an unpatched vulnerability privately instead of opening a public issue.

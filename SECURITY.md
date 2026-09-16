@@ -5,9 +5,10 @@ before use with sensitive data or consequential actions.
 
 ## Reporting
 
-Do not disclose an unpatched vulnerability in a public issue. Contact the
-repository owner through the private security channel configured for the
-future public repository. No public security contact is configured yet.
+Do not disclose an unpatched vulnerability in a public issue. Use GitHub's
+private vulnerability reporting channel when enabled, or contact the
+maintainer privately through the [Nhaooo GitHub profile](https://github.com/Nhaooo).
+Never include credentials or sensitive production data in a report.
 
 ## Current model
 

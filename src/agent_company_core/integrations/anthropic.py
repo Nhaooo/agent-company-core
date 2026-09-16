@@ -14,6 +14,7 @@ import os
 from typing import Any
 
 from agent_company_core.models import (
+    ModelProviderError,
     ModelRequest,
     ModelResponse,
     ProviderConfigurationError,
@@ -85,7 +86,9 @@ class AnthropicModel:
         except Exception as exc:
             if is_provider_timeout(exc):
                 raise ProviderTimeoutError("Anthropic request timed out") from exc
-            raise RuntimeError(f"Anthropic request failed: {type(exc).__name__}") from exc
+            raise ModelProviderError(
+                f"Anthropic request failed: {type(exc).__name__}"
+            ) from exc
 
         text = anthropic_text(response)
         structured = parse_structured_response(

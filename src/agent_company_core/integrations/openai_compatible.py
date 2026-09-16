@@ -14,6 +14,7 @@ import os
 from typing import Any
 
 from agent_company_core.models import (
+    ModelProviderError,
     ModelRequest,
     ModelResponse,
     ProviderConfigurationError,
@@ -87,7 +88,7 @@ class OpenAICompatibleModel:
         except Exception as exc:
             if is_provider_timeout(exc):
                 raise ProviderTimeoutError("OpenAI-compatible request timed out") from exc
-            raise RuntimeError(
+            raise ModelProviderError(
                 f"OpenAI-compatible request failed: {type(exc).__name__}"
             ) from exc
 

@@ -9,6 +9,37 @@ permissions: {}
 
 jobs:
   quality:
+    name: Quality (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.11"
+          - os: ubuntu-latest
+            python-version: "3.12"
+          - os: ubuntu-latest
+            python-version: "3.13"
+          - os: windows-latest
+            python-version: "3.13"
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: latest
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest
+      - run: uv run ruff check src tests examples scripts
+      - run: uv run mypy src
+      - run: uv run python scripts/secret_scan.py
+
+  package:
+    name: Package and offline smoke test
+    needs: quality
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,17 +48,26 @@ jobs:
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: latest
-      - run: uv venv
-      - run: uv pip install -e ".[dev,app]"
-      - run: uv run pytest
-      - run: uv run ruff check src tests
-      - run: uv run mypy src
-      - run: uv run python scripts/secret_scan.py
-      - run: uv run python -m build
+          python-version: "3.11"
+      - run: uv sync --all-extras --dev
+      - run: uv build
       - run: uv run twine check dist/*
       - run: uv run pip-audit
+      - name: Install wheel in a clean environment
+        run: |
+          uv venv --seed /tmp/agent-company-wheel-venv
+          uv pip install --python /tmp/agent-company-wheel-venv/bin/python dist/*.whl
+          /tmp/agent-company-wheel-venv/bin/agent-company demo
+      - name: Install sdist in a clean environment
+        run: |
+          uv venv --seed /tmp/agent-company-sdist-venv
+          uv pip install --python /tmp/agent-company-sdist-venv/bin/python dist/*.tar.gz
+          /tmp/agent-company-sdist-venv/bin/agent-company demo
+      - name: Smoke-test examples
+        run: uv run python scripts/smoke_examples.py
 
   secrets:
+    name: Secret scan
     runs-on: ubuntu-latest
     permissions:
       contents: read
