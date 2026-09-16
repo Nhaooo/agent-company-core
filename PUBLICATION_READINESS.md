@@ -31,6 +31,11 @@ release was created only after the gates below passed.
 - Release workflow: `.github/workflows/release.yml` builds and validates from
   the GitHub Release, then publishes through PyPI Trusted Publishing using the
   `pypi` environment and job-scoped OIDC permission.
+- GitHub environment protection: the `pypi` environment exists with no
+  reviewer rule configured; publication is constrained by the release-only
+  trigger, build/test dependency, exact Trusted Publisher identity, and
+  job-scoped OIDC permission. No sole-owner gate was added that would make the
+  release impossible.
 
 ## Published release
 
