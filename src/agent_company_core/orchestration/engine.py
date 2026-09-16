@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import inspect
+import json
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
@@ -360,7 +362,7 @@ class MissionEngine:
             id=approval_id,
             action=row["action"],
             target=row["target"],
-            arguments=__import__("json").loads(row["arguments"]),
+            arguments=json.loads(row["arguments"]),
             risk=RiskLevel(row["risk"]),
             requested_by=row["requested_by"],
             mission_id=UUID(row["mission_id"]) if row["mission_id"] else None,
@@ -389,6 +391,31 @@ class MissionEngine:
             mission_id=str(request.mission_id) if request.mission_id else None,
             payload={"approval_id": str(approval_id), "approved": resolution.approved},
         )
+
+    async def execute_approved(self, approval_id: UUID) -> ToolResult:
+        """Execute exactly one previously approved registered tool effect."""
+
+        row = self.store.get_approval(approval_id)
+        if row["status"] != "approved" or row["resolved_hash"] != row["request_hash"]:
+            raise PermissionError("approval is not resolved for execution")
+        self.stop.assert_running()
+        tool = self.tools.get(row["action"])
+        arguments = json.loads(row["arguments"])
+        value = tool.handler(arguments)
+        output = await value if inspect.isawaitable(value) else value
+        mission_id = UUID(row["mission_id"]) if row["mission_id"] else None
+        if mission_id:
+            self.store.set_status(
+                mission_id,
+                MissionStatus.COMPLETED,
+                payload={"approval_id": str(approval_id), "tool": tool.name, "output": output},
+            )
+        self.audit.record(
+            "approved_effect.executed",
+            mission_id=str(mission_id) if mission_id else None,
+            payload={"approval_id": str(approval_id), "tool": tool.name},
+        )
+        return ToolResult(name=tool.name, output=output)
 
     def checkpoint(self, mission_id: UUID, value: str) -> Mission:
         return self.store.checkpoint(mission_id, value)

@@ -232,6 +232,17 @@ class SQLiteStore:
                 raise KeyError(f"unknown approval: {approval_id}")
             return dict(row)
 
+    def list_approvals(self, mission_id: UUID | None = None) -> list[dict[str, Any]]:
+        with self._connect() as db:
+            if mission_id is None:
+                rows = db.execute("SELECT * FROM approvals ORDER BY expires_at").fetchall()
+            else:
+                rows = db.execute(
+                    "SELECT * FROM approvals WHERE mission_id = ? ORDER BY expires_at",
+                    (str(mission_id),),
+                ).fetchall()
+            return [dict(row) for row in rows]
+
     def resolve_approval(
         self,
         approval_id: UUID,
