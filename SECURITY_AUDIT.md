@@ -13,6 +13,11 @@ Result for the tracked public tree at extraction time:
 - Private personas/internal branding: 0 intended occurrences.
 - External publication: not performed.
 
+The dependency-free fallback scanner was run against 73 tracked files and
+reported zero secret-pattern findings. `gitleaks` was not available on the
+development machine, so an owner should run it against the complete history
+before creating a public repository.
+
 The strings in this document and the security documentation describe generic
 threat categories only. Before publication, run an established scanner such as
 gitleaks over the complete Git history and review every finding manually.
