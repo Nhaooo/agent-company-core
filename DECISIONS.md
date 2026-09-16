@@ -4,8 +4,8 @@
 
 The public repository is a separate fresh Git history so private source
 history, internal runtime data, and unrelated worktree state cannot be
-published accidentally. The private `AI-COMPANY` repository is not a remote
-for this repository and is not modified by the publication process.
+published accidentally. The private source repository is not a remote for
+this repository and is not modified by the publication process.
 
 ## OIDC-only PyPI publishing
 
