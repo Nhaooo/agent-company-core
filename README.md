@@ -14,6 +14,9 @@ apply.
 > it is not production-ready. Threat-model your application before using
 > sensitive data or consequential effects.
 
+Read the [documentation site](https://nhaooo.github.io/agent-company-core/)
+for the guided quickstart, concepts, provider setup, and contributor guide.
+
 ## 30-second demo
 
 The fastest path needs no account, API key, Docker, database server, or network
