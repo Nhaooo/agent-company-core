@@ -7,7 +7,7 @@ publication are intentionally performed only after the gates below pass.
 | Area | Status | Evidence / follow-up |
 | --- | --- | --- |
 | Apache-2.0 license | PASS | `LICENSE` is present and GitHub recognizes Apache-2.0. |
-| Secret scan | PASS | Official Gitleaks v8.30.1 reports 0 findings in the working tree and across all 16 Git commits; the dependency-free fallback also reports 0 findings in 133 tracked files. |
+| Secret scan | PASS | Official Gitleaks v8.30.1 reports 0 findings in the working tree and across all 13 Git commits; the dependency-free fallback also reports 0 findings in 133 tracked files. |
 | PII/local-path scan | PASS | Tracked filenames and content contain no personal username, absolute user path, private project identifier, or private source-repository name. Generic security terms and safe test placeholders were reviewed. |
 | Tests | PASS | GitHub main and PR CI pass; 29 tests pass with one existing Starlette deprecation warning. |
 | Lint | PASS | Ruff check passes in local and GitHub CI. |
@@ -26,7 +26,7 @@ publication are intentionally performed only after the gates below pass.
 
 - Gitleaks binary: official v8.30.1 Windows x64 release, checksum verified.
 - Working-tree scan: PASS, 0 findings.
-- Full-history scan: PASS, 0 findings across all 16 commits in this new
+- Full-history scan: PASS, 0 findings across all 13 commits in this new
   repository.
 - Fallback scan: PASS, 0 findings in 133 tracked files.
 - Release workflow: `.github/workflows/release.yml` builds and validates from
