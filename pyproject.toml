@@ -36,7 +36,7 @@ dependencies = ["pydantic>=2.7,<3"]
 [project.urls]
 Homepage = "https://github.com/Nhaooo/agent-company-core"
 Repository = "https://github.com/Nhaooo/agent-company-core"
-Documentation = "https://github.com/Nhaooo/agent-company-core/tree/main/docs"
+Documentation = "https://nhaooo.github.io/agent-company-core/"
 Changelog = "https://github.com/Nhaooo/agent-company-core/blob/main/CHANGELOG.md"
 Issues = "https://github.com/Nhaooo/agent-company-core/issues"
 
