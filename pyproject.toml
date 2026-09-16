@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agent-company-core"
+version = "0.1.0"
+description = "Durable, policy-aware orchestration primitives for multi-agent systems"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "agent-company-core contributors" }]
+keywords = ["agents", "orchestration", "durability", "approvals", "human-in-the-loop"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries",
+]
+dependencies = ["pydantic>=2.7,<3"]
+
+[project.optional-dependencies]
+app = ["fastapi>=0.115,<1", "uvicorn[standard]>=0.30,<1"]
+google = ["google-genai>=1.0,<2"]
+temporal = ["temporalio>=1.7,<2"]
+postgres = ["sqlalchemy[asyncio]>=2,<3", "asyncpg>=0.29,<1"]
+dev = [
+  "build>=1.2,<2",
+  "mypy>=1.11,<2",
+  "pip-audit>=2.7,<3",
+  "pytest>=8,<9",
+  "pytest-asyncio>=0.24,<1",
+  "ruff>=0.8,<1",
+  "twine>=5,<7",
+]
+
+[project.scripts]
+agent-company-reference = "agent_company_core.reference.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent_company_core"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/examples", "/docs", "/README.md", "/LICENSE", "/SECURITY.md"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["agent_company_core"]
+mypy_path = "src"
+warn_unused_ignores = true
+
+[tool.coverage.run]
+source = ["agent_company_core"]
