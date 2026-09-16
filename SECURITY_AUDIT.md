@@ -27,7 +27,7 @@ Official Gitleaks v8.30.1 was run with redacted output against both the current
 working tree and the complete Git history of this repository:
 
 - Working tree: PASS, 0 findings.
-- Full history: PASS, 0 findings across all 13 commits.
+- Full history: PASS, 0 findings across the complete Git history.
 - Dependency-free fallback scanner: PASS, 0 findings in all 133 tracked files.
 
 No secret value is reproduced in this document or in scan output.
