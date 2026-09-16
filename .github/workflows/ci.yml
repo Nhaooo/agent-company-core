@@ -14,10 +14,11 @@ jobs:
         with:
           version: latest
       - run: uv venv
-      - run: uv pip install -e ".[dev]"
+      - run: uv pip install -e ".[dev,app]"
       - run: uv run pytest
       - run: uv run ruff check src tests
       - run: uv run mypy src
+      - run: uv run python scripts/secret_scan.py
       - run: uv run python -m build
       - run: uv run twine check dist/*
       - run: uv run pip-audit

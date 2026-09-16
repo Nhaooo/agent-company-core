@@ -8,6 +8,7 @@ __pycache__/
 htmlcov/
 .venv/
 dist/
+dist2/
 build/
 *.sqlite3
 *.db

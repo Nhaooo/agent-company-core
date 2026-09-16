@@ -6,6 +6,7 @@ the adapter does and produces a clear installation error when absent.
 
 from __future__ import annotations
 
+import importlib
 from typing import Any
 
 from agent_company_core.models import ModelRequest, ModelResponse
@@ -24,7 +25,7 @@ class GoogleModel:
     ) -> None:
         if client is None:
             try:
-                from google import genai
+                genai = importlib.import_module("google.genai")
             except ImportError as exc:
                 raise RuntimeError("install agent-company-core[google] to use GoogleModel") from exc
             client = genai.Client(vertexai=bool(project), project=project, location=location)
