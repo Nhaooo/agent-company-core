@@ -12,6 +12,7 @@ from .contracts import (
 )
 from .integrations import AnthropicModel, OpenAICompatibleModel
 from .models import (
+    ConfigurationCheck,
     FakeEmbedding,
     FakeModel,
     ModelProvider,
@@ -22,6 +23,10 @@ from .models import (
     ProviderResponseError,
     ProviderTimeoutError,
     RoutingAssessment,
+    check_base_url,
+    check_model,
+    check_runtime_directory,
+    provider_configuration_checks,
     select_model_route,
 )
 from .orchestration import MissionEngine
@@ -38,6 +43,7 @@ __all__ = [
     "AgentSpec",
     "ApprovalRequest",
     "ApprovalResolution",
+    "ConfigurationCheck",
     "DecisionAction",
     "FakeEmbedding",
     "FakeModel",
@@ -60,6 +66,10 @@ __all__ = [
     "RoutingAssessment",
     "StopControl",
     "StopRequested",
+    "check_base_url",
+    "check_model",
+    "check_runtime_directory",
     "demo_registry",
+    "provider_configuration_checks",
     "select_model_route",
 ]
