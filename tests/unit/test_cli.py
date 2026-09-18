@@ -14,6 +14,7 @@ def test_cli_demo_is_offline_and_teaches_boundaries(capsys) -> None:
 
 def test_cli_doctor_reports_presence_without_values(tmp_path: Path, monkeypatch, capsys) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "must-not-print")
+    monkeypatch.setenv("OPENAI_MODEL", "test-model")
     assert main(["doctor", "--data-dir", str(tmp_path)]) == 0
     output = capsys.readouterr().out
     assert "OPENAI_API_KEY: set" in output

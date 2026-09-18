@@ -21,6 +21,7 @@ from agent_company_core import (
     ModelResponse,
     RiskLevel,
     __version__,
+    provider_configuration_checks,
 )
 from agent_company_core.persistence import SQLiteStore
 
@@ -80,6 +81,7 @@ def _doctor(args: argparse.Namespace) -> int:
         writable = True
     except OSError:
         pass
+
     print(f"Writable runtime directory: {'yes' if writable else 'no'}")
 
     print("Optional integrations:")
@@ -96,12 +98,29 @@ def _doctor(args: argparse.Namespace) -> int:
     print("Provider configuration (presence only):")
     for variable in (
         "ANTHROPIC_API_KEY",
+        "ANTHROPIC_MODEL",
         "OPENAI_API_KEY",
         "OPENAI_BASE_URL",
+        "OPENAI_MODEL",
         "GOOGLE_API_KEY",
         "GOOGLE_CLOUD_PROJECT",
+        "GOOGLE_MODEL",
+        "OLLAMA_API_KEY",
+        "OLLAMA_BASE_URL",
+        "OLLAMA_MODEL",
     ):
         print(f"  {variable}: {'set' if os.environ.get(variable) else 'not set'}")
+
+    configuration_checks = provider_configuration_checks()
+    configuration_ok = True
+
+    if configuration_checks:
+        print("Provider configuration checks:")
+        for check in configuration_checks:
+            status = "ok" if check.ok else "invalid"
+            print(f"  {check.message} [{status}]")
+            if not check.ok:
+                configuration_ok = False
 
     database_ready = False
     try:
@@ -110,7 +129,17 @@ def _doctor(args: argparse.Namespace) -> int:
         print(f"SQLite store: ready ({len(missions)} missions)")
     except (OSError, RuntimeError):
         print("SQLite store: unavailable")
-    return 0 if writable and database_ready else 1
+
+    if not writable:
+        print("Doctor found an unwritable runtime directory.", file=sys.stderr)
+
+    if not configuration_ok:
+        print("Doctor found invalid provider configuration.", file=sys.stderr)
+
+    if not database_ready:
+        print("Doctor could not initialize the SQLite store.", file=sys.stderr)
+
+    return 0 if writable and configuration_ok and database_ready else 1
 
 
 class _ApprovalDemoModel:
