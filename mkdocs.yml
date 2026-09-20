@@ -36,6 +36,7 @@ nav:
   - Integrations:
       - Overview: integrations.md
       - FastAPI: integrations/fastapi.md
+      - OpenTelemetry: integrations/opentelemetry.md
       - Temporal: integrations/temporal.md
       - PostgreSQL: integrations/postgres.md
   - Examples: examples.md
