@@ -28,7 +28,7 @@ from agent_company_core.models import (
     RoutingAssessment,
     select_model_route,
 )
-from agent_company_core.observability import AuditLogger
+from agent_company_core.observability import AuditLogger, NoOpObservability, Observability
 from agent_company_core.permissions import (
     ApprovalRequest,
     ApprovalResolution,
@@ -53,6 +53,7 @@ class MissionEngine:
         policy: Policy | None = None,
         stop: StopControl | None = None,
         audit: AuditLogger | None = None,
+        observability: Observability | None = None,
         memory: MemoryStore | None = None,
     ) -> None:
         self.store = store
@@ -67,11 +68,42 @@ class MissionEngine:
         self.policy = policy or Policy()
         self.stop = stop or StopControl(Path(store.path).with_name("stop.json"))
         self.audit = audit or AuditLogger(Path(store.path).with_name("audit.jsonl"))
+        self.observability = observability or NoOpObservability()
         self.memory = memory or SQLiteMemoryStore(store.path)
+
+    def _record(
+        self,
+        event_type: str,
+        *,
+        mission_id: str | None = None,
+        payload: dict[str, object] | None = None,
+    ) -> None:
+        """Persist the complete redacted audit event and export only safe metadata."""
+
+        self.audit.record(event_type, mission_id=mission_id, payload=payload)
+        attributes: dict[str, object] = {"event.name": event_type}
+        if mission_id:
+            attributes["mission.id"] = mission_id
+        attribute_names = {
+            "agent": "agent.id",
+            "provider": "provider.name",
+            "model": "provider.model",
+            "route_alias": "provider.route",
+            "tool": "tool.name",
+            "approval_id": "approval.id",
+            "approved": "approval.approved",
+            "status": "mission.status",
+            "error_type": "error.type",
+        }
+        for key, value in (payload or {}).items():
+            attribute = attribute_names.get(key)
+            if attribute:
+                attributes[attribute] = value
+        self.observability.record_event(event_type, attributes)
 
     def create_mission(self, value: MissionCreate) -> Mission:
         mission = self.store.create_mission(value)
-        self.audit.record(
+        self._record(
             "mission.created", mission_id=str(mission.id), payload={"title": mission.title}
         )
         return mission
@@ -84,12 +116,26 @@ class MissionEngine:
 
     def choose_tool(self, capabilities: set[str]) -> str:
         tool = self.tools.choose(capabilities=capabilities)
-        self.audit.record(
+        self._record(
             "tool.selected", payload={"tool": tool.name, "capabilities": sorted(capabilities)}
         )
         return tool.name
 
     async def run_mission(
+        self,
+        mission_id: UUID,
+        *,
+        assessment: RoutingAssessment | None = None,
+        capabilities: set[str] | None = None,
+    ) -> MissionResult:
+        with self.observability.operation(
+            "agent_company.mission.run", {"mission.id": str(mission_id)}
+        ):
+            return await self._run_mission(
+                mission_id, assessment=assessment, capabilities=capabilities
+            )
+
+    async def _run_mission(
         self,
         mission_id: UUID,
         *,
@@ -123,7 +169,7 @@ class MissionEngine:
             self.store.set_status(
                 mission.id, MissionStatus.RUNNING, payload={"agent": selected_agent.id}
             )
-            self.audit.record(
+            self._record(
                 "mission.started",
                 mission_id=str(mission.id),
                 payload={"agent": selected_agent.id, "route": route.candidates},
@@ -144,7 +190,7 @@ class MissionEngine:
                     response=response.text,
                 )
             )
-            self.audit.record(
+            self._record(
                 "decision.recorded",
                 mission_id=str(mission.id),
                 payload=decision.model_dump(mode="json"),
@@ -152,7 +198,7 @@ class MissionEngine:
             return await self._apply_decision(mission.id, decision, selected_agent.id)
         except StopRequested as exc:
             self.store.set_status(mission.id, MissionStatus.STOPPED, payload={"reason": str(exc)})
-            self.audit.record(
+            self._record(
                 "mission.stopped", mission_id=str(mission.id), payload={"reason": str(exc)}
             )
             return MissionResult(
@@ -166,7 +212,7 @@ class MissionEngine:
             self.store.set_status(
                 mission.id, MissionStatus.FAILED, payload={"error_type": type(exc).__name__}
             )
-            self.audit.record(
+            self._record(
                 "mission.failed",
                 mission_id=str(mission.id),
                 payload={"error_type": type(exc).__name__},
@@ -189,8 +235,12 @@ class MissionEngine:
                 errors.append(f"{alias}: unavailable")
                 continue
             try:
-                result = await provider.complete(request)
-                self.audit.record(
+                with self.observability.operation(
+                    "agent_company.provider.call",
+                    {"mission.id": str(mission_id), "provider.route": alias},
+                ):
+                    result = await provider.complete(request)
+                self._record(
                     "model.completed",
                     mission_id=str(mission_id),
                     payload={
@@ -202,7 +252,7 @@ class MissionEngine:
                 return result
             except Exception as exc:
                 errors.append(f"{alias}: {type(exc).__name__}")
-                self.audit.record(
+                self._record(
                     "model.failed",
                     mission_id=str(mission_id),
                     payload={"route_alias": alias, "error_type": type(exc).__name__},
@@ -290,6 +340,11 @@ class MissionEngine:
                     mission_id=mission_id,
                 )
                 self.store.save_approval(approval)
+                self._record(
+                    "approval.requested",
+                    mission_id=str(mission_id),
+                    payload={"approval_id": str(approval.id), "tool": tool.name},
+                )
                 mission = self.store.set_status(
                     mission_id,
                     MissionStatus.WAITING_APPROVAL,
@@ -306,14 +361,23 @@ class MissionEngine:
                     selected_tool=tool.name,
                     checkpoint=mission.checkpoint,
                 )
-            result = await self.tools.execute(
-                name,
-                decision.tool_arguments,
-                policy=self.policy,
-                stop=self.stop,
-                requested_by=agent_id,
-                mission_id=str(mission_id),
-            )
+            with self.observability.operation(
+                "agent_company.tool.execute",
+                {"mission.id": str(mission_id), "agent.id": agent_id, "tool.name": name},
+            ):
+                result = await self.tools.execute(
+                    name,
+                    decision.tool_arguments,
+                    policy=self.policy,
+                    stop=self.stop,
+                    requested_by=agent_id,
+                    mission_id=str(mission_id),
+                )
+                self._record(
+                    "tool.completed",
+                    mission_id=str(mission_id),
+                    payload={"tool": result.name, "agent": agent_id},
+                )
             mission = self.store.set_status(
                 mission_id,
                 MissionStatus.COMPLETED,
@@ -337,6 +401,14 @@ class MissionEngine:
                 mission_id=mission_id,
             )
             self.store.save_approval(approval)
+            self._record(
+                "approval.requested",
+                mission_id=str(mission_id),
+                payload={
+                    "approval_id": str(approval.id),
+                    "tool": decision.tool_name or "declared_effect",
+                },
+            )
             mission = self.store.set_status(
                 mission_id,
                 MissionStatus.WAITING_APPROVAL,
@@ -373,7 +445,7 @@ class MissionEngine:
                 MissionStatus.PLANNED,
                 payload={"delegated_to": [agent.id for agent in selected]},
             )
-        self.audit.record(
+        self._record(
             "mission.delegated",
             mission_id=str(mission_id),
             payload={"agent_ids": [agent.id for agent in selected]},
@@ -393,6 +465,13 @@ class MissionEngine:
         )
 
     def resolve_approval(self, approval_id: UUID, resolution: ApprovalResolution) -> None:
+        with self.observability.operation(
+            "agent_company.approval.resolve",
+            {"approval.id": str(approval_id), "approval.approved": resolution.approved},
+        ):
+            self._resolve_approval(approval_id, resolution)
+
+    def _resolve_approval(self, approval_id: UUID, resolution: ApprovalResolution) -> None:
         row = self.store.get_approval(approval_id)
         if row["status"] != "pending":
             if (
@@ -430,7 +509,7 @@ class MissionEngine:
                 MissionStatus.QUEUED if resolution.approved else MissionStatus.CANCELLED,
                 payload={"approval_id": str(approval_id), "approved": resolution.approved},
             )
-        self.audit.record(
+        self._record(
             "approval.resolved",
             mission_id=str(request.mission_id) if request.mission_id else None,
             payload={"approval_id": str(approval_id), "approved": resolution.approved},
@@ -439,6 +518,12 @@ class MissionEngine:
     async def execute_approved(self, approval_id: UUID) -> ToolResult:
         """Execute exactly one previously approved registered tool effect."""
 
+        with self.observability.operation(
+            "agent_company.tool.execute", {"approval.id": str(approval_id)}
+        ):
+            return await self._execute_approved(approval_id)
+
+    async def _execute_approved(self, approval_id: UUID) -> ToolResult:
         row = self.store.get_approval(approval_id)
         if row["status"] != "approved" or row["resolved_hash"] != row["request_hash"]:
             raise PermissionError("approval is not resolved for execution")
@@ -457,7 +542,7 @@ class MissionEngine:
                 MissionStatus.COMPLETED,
                 payload={"approval_id": str(approval_id), "tool": tool.name, "output": output},
             )
-        self.audit.record(
+        self._record(
             "approved_effect.executed",
             mission_id=str(mission_id) if mission_id else None,
             payload={"approval_id": str(approval_id), "tool": tool.name},
@@ -465,15 +550,20 @@ class MissionEngine:
         return ToolResult(name=tool.name, output=output)
 
     def checkpoint(self, mission_id: UUID, value: str) -> Mission:
-        return self.store.checkpoint(mission_id, value)
+        with self.observability.operation(
+            "agent_company.checkpoint.save", {"mission.id": str(mission_id)}
+        ):
+            mission = self.store.checkpoint(mission_id, value)
+            self._record("mission.checkpointed", mission_id=str(mission_id))
+        return mission
 
     def request_stop(self, reason: str = "requested") -> None:
         self.stop.request(reason)
-        self.audit.record("runtime.stop_requested", payload={"reason": reason})
+        self._record("runtime.stop_requested", payload={"reason": reason})
 
     def clear_stop(self) -> None:
         self.stop.clear()
-        self.audit.record("runtime.stop_cleared")
+        self._record("runtime.stop_cleared")
 
     def remember(
         self,
@@ -486,7 +576,9 @@ class MissionEngine:
         item = self.memory.remember(
             MemoryItem(content=content, scope=scope, key=key, metadata=metadata or {})
         )
-        self.audit.record("memory.persisted", payload={"memory_id": str(item.id), "scope": scope})
+        self._record(
+            "memory.persisted", payload={"memory_id": str(item.id), "scope": scope}
+        )
         return item
 
     def search_memory(

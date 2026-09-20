@@ -3,6 +3,14 @@
 The core package is deliberately provider-neutral. Integrations are adapters,
 not hidden dependencies of `MissionEngine`.
 
+## OpenTelemetry
+
+Install `agent-company-core[otel]` and pass an `OpenTelemetryObservability`
+instance to `MissionEngine`. The adapter accepts host-configured SDK tracer and
+meter providers and exports only explicitly allowlisted lifecycle metadata. See
+the [OpenTelemetry integration guide](integrations/opentelemetry.md) for the
+signal and privacy contract.
+
 ## Google Gen AI
 
 Install `agent-company-core[google]`, create `GoogleModel(model=...)`, and

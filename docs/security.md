@@ -12,6 +12,12 @@ The project is alpha and does not replace an application threat model.
   is not a secure sandbox and provides no OS/container isolation.
 - Optional provider SDKs inherit the host application's credential, network,
   retention, and data residency responsibilities.
+- OpenTelemetry exports only a documented attribute allowlist. Prompts,
+  responses, tool arguments/results, checkpoint contents, memory, credentials,
+  operator identities, and exception messages are excluded. Host-configured
+  resource attributes, sampler, exporter transport and authentication,
+  collector access, regional placement, and backend retention remain the
+  application's responsibility.
 
 Keep secrets out of source, examples, logs, issue bodies, and generated runtime
 files. Report unpatched vulnerabilities privately rather than in a public issue.
